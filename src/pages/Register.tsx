@@ -1,29 +1,79 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Code } from 'lucide-react';
+import { Code, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useSupabase } from '@/lib/supabase-provider';
+import { useToast } from '@/hooks/use-toast';
 
 const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signUp } = useSupabase();
+  const { signUp, user } = useSupabase();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // If the user is already signed in, redirect to app
+  useEffect(() => {
+    if (user) {
+      navigate('/app');
+    }
+  }, [user, navigate]);
+
+  const validatePassword = (password: string) => {
+    const errors = [];
+    if (password.length < 6) {
+      errors.push("Password must be at least 6 characters long");
+    }
+    return errors;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please fill all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const passwordErrors = validatePassword(password);
+    if (passwordErrors.length > 0) {
+      toast({
+        title: "Password Error",
+        description: passwordErrors.join(". "),
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
       await signUp(email, password);
-      navigate('/login', { state: { message: 'Please check your email to verify your account' } });
-    } catch (error) {
+      navigate('/login', { 
+        state: { message: 'Please check your email to verify your account' } 
+      });
+    } catch (error: any) {
       console.error('Registration error:', error);
+      // Error toast is already displayed by the supabase provider
     } finally {
       setLoading(false);
     }
@@ -57,6 +107,7 @@ const Register = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
                 />
               </div>
               <div className="space-y-2">
@@ -67,14 +118,31 @@ const Register = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
                   minLength={6}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input 
+                  id="confirmPassword" 
+                  type="password" 
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={loading}
                 />
                 <p className="text-xs text-muted-foreground">
                   Password must be at least 6 characters long
                 </p>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating account...' : 'Create account'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : 'Create account'}
               </Button>
             </form>
             

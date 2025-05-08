@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useSupabase } from '@/lib/supabase-provider';
+import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,17 +10,20 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useSupabase();
+  const location = useLocation();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <Loader2 className="animate-spin h-12 w-12 text-violet-500" />
+        <p className="mt-4 text-muted-foreground">Loading your account...</p>
       </div>
     );
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Redirect to login but remember where the user was trying to go
+    return <Navigate to="/login" state={{ returnTo: location.pathname }} replace />;
   }
 
   return <>{children}</>;
