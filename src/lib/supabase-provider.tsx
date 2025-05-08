@@ -1,10 +1,11 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 type SupabaseContextType = {
-  supabase: SupabaseClient | null;
+  supabase: typeof supabase;
   user: User | null;
   session: Session | null;
   loading: boolean;
@@ -13,13 +14,8 @@ type SupabaseContextType = {
   signOut: () => Promise<void>;
 };
 
-// This is a placeholder - you'll need to replace with your own project URL and anon key after 
-// connecting to Supabase from the Lovable interface
-const supabaseUrl = 'https://your-project-url.supabase.co';
-const supabaseAnonKey = 'your-anon-key';
-
 const SupabaseContext = createContext<SupabaseContextType>({
-  supabase: null,
+  supabase,
   user: null,
   session: null,
   loading: true,
@@ -29,22 +25,25 @@ const SupabaseContext = createContext<SupabaseContextType>({
 });
 
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const client = createClient(supabaseUrl, supabaseAnonKey);
-    setSupabase(client);
-
-    const { data: { subscription } } = client.auth.onAuthStateChange(
-      async (event, session) => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
       }
     );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -53,8 +52,6 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const signIn = async (email: string, password: string) => {
     try {
-      if (!supabase) throw new Error('Supabase client not initialized');
-      
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
@@ -63,6 +60,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       toast.success('Signed in successfully');
     } catch (error: any) {
+      console.error('Login error:', error);
       toast.error(`Error signing in: ${error.message}`);
       throw error;
     }
@@ -70,8 +68,6 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const signUp = async (email: string, password: string) => {
     try {
-      if (!supabase) throw new Error('Supabase client not initialized');
-      
       const { error } = await supabase.auth.signUp({ email, password });
       
       if (error) {
@@ -80,6 +76,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       toast.success('Signed up successfully! Check your email for a confirmation link.');
     } catch (error: any) {
+      console.error('Registration error:', error);
       toast.error(`Error signing up: ${error.message}`);
       throw error;
     }
@@ -87,8 +84,6 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const signOut = async () => {
     try {
-      if (!supabase) throw new Error('Supabase client not initialized');
-      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -97,6 +92,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       toast.success('Signed out successfully');
     } catch (error: any) {
+      console.error('Signout error:', error);
       toast.error(`Error signing out: ${error.message}`);
       throw error;
     }
