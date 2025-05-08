@@ -33,6 +33,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
       }
@@ -40,6 +41,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -52,9 +54,11 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('Signing in with:', email);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
+        console.error('Login error:', error);
         throw error;
       }
       
@@ -68,9 +72,11 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const signUp = async (email: string, password: string) => {
     try {
+      console.log('Signing up with:', email);
       const { error } = await supabase.auth.signUp({ email, password });
       
       if (error) {
+        console.error('Registration error:', error);
         throw error;
       }
       
@@ -87,6 +93,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const { error } = await supabase.auth.signOut();
       
       if (error) {
+        console.error('Signout error:', error);
         throw error;
       }
       

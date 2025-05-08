@@ -21,6 +21,7 @@ const Register = () => {
   // If the user is already signed in, redirect to app
   useEffect(() => {
     if (user) {
+      console.log('Register: User already authenticated, redirecting to app');
       navigate('/app');
     }
   }, [user, navigate]);
@@ -65,9 +66,11 @@ const Register = () => {
     }
     
     setLoading(true);
+    console.log('Register: Attempting to sign up with', email);
 
     try {
       await signUp(email, password);
+      console.log('Register: Sign up successful, redirecting to login');
       navigate('/login', { 
         state: { message: 'Please check your email to verify your account' } 
       });

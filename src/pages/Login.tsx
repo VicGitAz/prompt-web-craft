@@ -21,9 +21,11 @@ const Login = () => {
   // If the user is already signed in, redirect to app
   useEffect(() => {
     if (user) {
-      navigate('/app');
+      console.log('Login: User already authenticated, redirecting to app');
+      const returnTo = location.state?.returnTo || '/app';
+      navigate(returnTo);
     }
-  }, [user, navigate]);
+  }, [user, navigate, location]);
 
   // Display message if it exists in location state
   useEffect(() => {
@@ -51,10 +53,13 @@ const Login = () => {
     }
     
     setLoading(true);
+    console.log('Login: Attempting to sign in with', email);
 
     try {
       await signIn(email, password);
-      navigate('/app');
+      const returnTo = location.state?.returnTo || '/app';
+      console.log('Login: Sign in successful, redirecting to', returnTo);
+      navigate(returnTo);
     } catch (error: any) {
       console.error('Login error:', error);
       // Error toast is already displayed by the supabase provider

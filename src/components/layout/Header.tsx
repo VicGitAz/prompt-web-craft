@@ -1,15 +1,9 @@
 
-import { Bell, Menu, User } from 'lucide-react';
-import { useSupabase } from '@/lib/supabase-provider';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
+import { useSupabase } from "@/lib/supabase-provider";
+import { Menu, LogOut } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -17,50 +11,54 @@ interface HeaderProps {
 }
 
 const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
-  const { user, signOut } = useSupabase();
+  const navigate = useNavigate();
+  const { signOut, user } = useSupabase();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
+        aria-label="Toggle Menu"
         className="md:hidden"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
-        <Menu className="h-6 w-6" />
-        <span className="sr-only">Toggle menu</span>
+        <Menu className="h-5 w-5" />
+        <span className="sr-only">Toggle Menu</span>
       </Button>
-
-      <div className="flex-1" />
-
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 flex h-2 w-2 rounded-full bg-red-500">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-          </span>
-        </Button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-violet-100 text-violet-500">
-                {user?.email?.[0].toUpperCase() || <User className="h-5 w-5" />}
-              </div>
+      <div className="flex-1">
+        <h1 className="text-lg font-semibold">Dashboard</h1>
+      </div>
+      <div className="flex items-center gap-2">
+        {user && (
+          <div className="flex items-center gap-4">
+            <div className="hidden md:block">
+              <p className="text-sm font-medium">{user.email}</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="sr-only">Log out</span>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.email}</p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()}>
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </div>
+        )}
       </div>
     </header>
   );
